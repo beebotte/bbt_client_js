@@ -21,7 +21,7 @@ BBT = function(key_id, options) {
   this.key = key_id;
   this.auth_endpoint = null;
   this.auth_method = 'get';
-  this.server = 'x.beebotte.com:8080';
+  this.server = 'beebotte.com';
   this.cipher = null;
   this.userinfo = {};
 
