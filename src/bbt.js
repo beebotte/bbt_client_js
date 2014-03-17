@@ -1,3 +1,16 @@
+/*!
+ * Beebotte client JavaScript library
+ * Version 0.1.0
+ * http://beebotte.com
+ * Report issues to https://github.com/beebotte/bbt_node/issues
+ * Contact email contact@beebotte.com
+ *
+ * Copyright 2014, Beebotte
+ * MIT licence
+ */
+
+/************************************/
+
 /**
  * Class: BBT
  * An object container for all Beebotte library functions.
@@ -15,37 +28,77 @@
  */
 BBT = function(key_id, options) {
   checkAppKey(key_id);
+  this.key = key_id;
   options = options || {};
 
-  var self = this;
-  this.key = key_id;
-  this.auth_endpoint = null;
-  this.auth_method = 'get';
-  this.server = 'beebotte.com';
-  this.cipher = null;
-  this.userinfo = {};
+  initDefaults(); //Initialize default params
+  updateParams(options);
 
-  if(options.auth_endpoint) this.auth_endpoint = options.auth_endpoint;
-  if(options.auth_method) this.auth_method = options.auth_method;
-  if(options.username) this.userinfo.username = options.username;
-  if(options.server) this.server = options.server;
-  if(options.cipher) this.cipher = options.cipher;
+  var self = this;
 
   this.instanceID = Math.floor(Math.random() * 1000000000); 
-
   BBT.instances.push(this);
 
   this.connection = new BBT.Connection(this);
   this.connect();
+
+  var initDefaults = function() {
+    this.ws_host  = BBT.ws_host;
+    this.api_host = BBT.api_host;
+    this.host     = BBT.host;
+    this.port     = BBT.port;
+    this.sport    = BBT.sport;
+
+    this.ssl = false;
+    this.auth_endpoint = null;
+    this.auth_method = 'get';
+    this.cipher = null;
+    this.userinfo = {};
+  };
+
+  var updateParams = function(params) {
+    if(params.auth_endpoint) this.auth_endpoint = params.auth_endpoint;
+    if(params.auth_method) this.auth_method = params.auth_method;
+    if(params.username) this.userinfo.username = params.username;
+    if(params.host) this.host = params.host;
+    if(params.ws_host) this.ws_host = params.ws_host;
+    if(params.api_host) this.api_host = params.api_host;
+    if(params.port) this.port = params.port;
+    if(params.sport) this.sport = params.sport;
+    if(params.ssl) this.ssl = params.ssl;
+
+    if(params.cipher) this.cipher = params.cipher;
+  };
+
+  var getWsUrl = function() {
+    var p = (this.ssl === true)? this.sport : this.port;
+    return this.ws_host + ':' p;
+  };
+
+  var getApiUrl = function() {
+    var p = (this.ssl === true)? this.sport : this.port;
+    return this.api_host + ':' p;
+  };
 }
 
+/*** Constant Values ***/
+BBT.VERSION  = '0.1.0'; //Version of this client library
+BBT.PROTO    = 1; //Version of Beebotte Protocol
+BBT.ws_host  = 'ws.beebotte.com';
+BBT.api_host = 'api.beebotte.com';
+BBT.host     = 'beebotte.com';
+BBT.port     = 80;  //Port for clear text connections
+BBT.sec_port = 443; //Port for secure (TLS) connections
+
 BBT.instances = [];
+
 
 BBT.Connection = function(bbt) {
   this.bbt = bbt;
   this.connected = false;
   this.connection = null;
   this.channels = new BBT.Channels();
+
 }
 
 BBT.Connection.prototype.onConnection = function() {
@@ -57,7 +110,7 @@ BBT.Connection.prototype.onConnection = function() {
 BBT.Connection.prototype.connect = function () {
   var self = this;
   var query =  'key=' + this.bbt.key + '&username=' + (self.bbt.userinfo.username || '');
-  this.connection = new io.connect(this.bbt.server, {query: query });
+  this.connection = new io.connect(getWsUrl(), {query: query });
   
   this.connection.on('connect', function () {
     self.connected = true;
@@ -173,7 +226,7 @@ BBT.Connection.prototype.write = function(args) {
 //For internal use only    
 BBT.Connection.prototype.send = function(cname, evt, data) {
   if(this.connection) {
-    this.connection.json.send({channel: cname, event: evt, data: data});
+    this.connection.json.send({version: BBT.Proto, channel: cname, event: evt, data: data});
     return true;
   }else {
     return false;
@@ -555,7 +608,7 @@ BBT.prototype.read = function(args, callback) {
 
   if(!cbk) return BBT.error('Callback function not specified');
 
-  $.get( this.server + '/api/public/resource', {device: args.device, service: args.service, resource: args.resource, limit: limit} )
+  $.get( getWsUrl() + '/api/public/resource', {device: args.device, service: args.service, resource: args.resource, limit: limit} )
     .success(function( data ) {
       if( cbk )
         cbk( null, data );
