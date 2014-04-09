@@ -8,7 +8,7 @@
         "node": ">=0.8"
     },
     "dependencies": {
-        "express": "*",
+        "express": "3.*",
         "beebotte": "*"
     }
 }
