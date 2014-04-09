@@ -116,6 +116,10 @@
                 if(!$('#' + message.data.id).length) {
                   $('#presence').append('<li id="' + message.data.id + '" class="list-group-item">' + message.data.userinfo.username || message.data.id + '</li>');
                 }
+              }else if(message.data.event === 'leave') {
+                if($('#' + message.data.id).length) {
+                  $('#' + message.data.id).remove();
+                }
               }
             });
 
