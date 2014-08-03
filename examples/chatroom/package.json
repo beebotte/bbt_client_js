@@ -1,7 +1,7 @@
 {
     "name": "bbt-chat-demo",
     "description": "Real time chat demo of Beebotte.",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": "Beebotte <bwehbi@beebotte.com>",
     "homepage": "http://beebotte.com",
     "engines": {
