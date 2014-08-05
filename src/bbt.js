@@ -1,6 +1,6 @@
 /*!
  * Beebotte client JavaScript library
- * Version 0.1.0
+ * Version 0.2.1
  * http://beebotte.com
  * Report issues to https://github.com/beebotte/bbt_node/issues
  * Contact email contact@beebotte.com
@@ -11,7 +11,7 @@
 
 /************************************/
 
-/**
+/** @constructor 
  * Class: BBT
  * An object container for all Beebotte library functions.
  * 
@@ -51,7 +51,7 @@ BBT.ws_host  = 'ws.beebotte.com';
 BBT.api_host = 'api.beebotte.com';
 BBT.host     = 'beebotte.com';
 BBT.port     = 80;  //Port for clear text connections
-BBT.sec_port = 443; //Port for secure (TLS) connections
+BBT.sport    = 443; //Port for secure (TLS) connections
 
 BBT.types = {
     //Basic types
@@ -75,7 +75,7 @@ BBT.types = {
     //Unit types (all numeric - functional)
     BBT_Temp: 'temperature',
     BBT_Humidity: 'humidity',
-    BBT_BodyTemp: 'body temperature',
+    BBT_BodyTemp: 'body temperature'
 };
 
 BBT.AttributeTypesLabels = [
@@ -100,7 +100,7 @@ BBT.AttributeTypesLabels = [
     //Unit types (all numeric - functional)
     'temperature',
     'humidity',
-    'body temperature',
+    'body temperature'
 ];
 
 BBT.instances = [];
@@ -112,7 +112,7 @@ BBT.prototype.initDefaults = function() {
   this.port     = BBT.port;
   this.sport    = BBT.sport;
 
-  this.ssl = false;
+  this.ssl = true;
   this.auth_endpoint = null;
   this.auth_method = 'get';
   this.cipher = null;
@@ -143,6 +143,7 @@ BBT.prototype.getApiUrl = function() {
   return ((this.ssl === true)? 'https://' : 'http://' ) + this.api_host + ':' + p;
 }
 
+/** @constructor */
 BBT.Connection = function(bbt) {
   this.bbt = bbt;
   this.connected = false;
@@ -152,7 +153,7 @@ BBT.Connection = function(bbt) {
 }
 
 BBT.Connection.prototype.onConnection = function() {
-  this.connected = true; //TODO: this is not needed
+  this.connected = true;
   for(c in this.channels.channels) {
     this.channels.channels[c].do_subscribe();
   }
@@ -188,11 +189,11 @@ BBT.Connection.prototype.connect = function () {
     }
   });
   
-  //this.connected = true; //TODO: this is not needed
+  //this.connected = true;
 }
 
 BBT.Connection.prototype.disconnect = function () {
-  this.connection.socket.disconnect();
+  if(this.connection) this.connection.socket.disconnect();
 }
 
 //for internal use only
@@ -261,7 +262,7 @@ BBT.Connection.prototype.write = function(args) {
 
   if(args.channel.indexOf('private-') === 0) {
     //persistent messages have their own access levels (public or private). This overrides user indication
-    args.channel = args.channel.substring(('private-').length());
+    args.channel = args.channel.substring('private-'.length);
   }
 
   if(Channel && Channel.hasWritePermission()) {
@@ -277,13 +278,14 @@ BBT.Connection.prototype.write = function(args) {
 //For internal use only    
 BBT.Connection.prototype.send = function(cname, evt, data) {
   if(this.connection) {
-    this.connection.json.send({version: BBT.Proto, channel: cname, event: evt, data: data});
+    this.connection.json.send({version: BBT.PROTO, channel: cname, event: evt, data: data});
     return true;
   }else {
     return false;
   }
 }
 
+/** @constructor */
 BBT.Channels = function() {
   this.channels = [];
 }
@@ -324,6 +326,7 @@ BBT.Channels.prototype.getChannelWithPermission = function(channel, resource, re
   return null;
 }
 
+/** @constructor */
 BBT.Channel = function(args, fct, bbt) {
   this.eid = args.channel + '.' + args.resource;
   this.channel = args.channel;
@@ -352,7 +355,6 @@ BBT.Channel.prototype.authNeeded = function() {
 }
 
 BBT.Channel.prototype.do_subscribe = function() {
-  console.log(this);
   var self = this;
   if(!self.bbt.connection.connected) return;
   var connection = this.bbt.connection;
@@ -534,7 +536,7 @@ BBT.prototype.disconnect = function() {
  *   {string, required} resource name of the resource.
  *   {Object, optional} data data message to publish to Bebotte.
  * }
- * @param {Object, optional} data data message to publish to Beebotte. If args.data is present, it will override this parameter.
+ * @param {Object optional} data data message to publish to Beebotte. If args.data is present, it will override this parameter.
  */
 BBT.prototype.publish = function(args, data) {
   var vargs = {};
@@ -562,7 +564,7 @@ BBT.prototype.publish = function(args, data) {
  *   {string, required} resource name of the resource.
  *   {Object, optional} data data message to write to Bebotte.
  * }
- * @param {Object, optional} data data message to write to Beebotte. If args.data is present, it will override this parameter.  
+ * @param {Object optional} data data message to write to Beebotte. If args.data is present, it will override this parameter.  
  */
 BBT.prototype.write = function(args, data) {
   var vargs = {};
@@ -674,6 +676,7 @@ BBT.prototype.read = function(args, callback) {
     });
 }
 
+/** @constructor */
 BBT.Connector = function(options) {
     this.keyId = null;
     this.secretKey = null;
@@ -688,7 +691,7 @@ BBT.Connector = function(options) {
         throw new Error('(BBT.Connector) Parameter Error: You must provide your API access key and secret key!');
     }
     
-    this.protocol = options.protocol || 'http';
+    this.protocol = options.protocol || 'https'; //Defaults to HTTPs
     if(this.protocol.toLowerCase() !== 'http' && this.protocol.toLowerCase() !== 'https') throw new Error('Unsupported protocol ' + this.protocol);
     this.hostname = options.hostname || 'api.beebotte.com';
     if(this.protocol.toLowerCase() === 'http') this.port = 80; else this.port = 443; 
@@ -723,7 +726,6 @@ BBT.Connector = function(options) {
       contentType = "application/json";
       md5 = '';
       if( options.method === 'POST' || options.method === 'PUT' ) md5 = b64_md5(options.data);
-      console.log(md5);
       beforeSend = function(xhr) {};
       if( options.is_public !== true ) {
         beforeSend = function(xhr) {
@@ -746,7 +748,7 @@ BBT.Connector = function(options) {
         },
         error: function(body) {
           callback(body, body)
-        },
+        }
       });
     }
 }
@@ -830,7 +832,7 @@ BBT.Connector.prototype.publish = function(params, callback) {
   if( params.source ) body.source = params.source;
   var bodystr = JSON.stringify(body);
   options = {
-    uri: '/v1/data/publish/' + params.channel + '/' + params.resource + '?' + (params.private? 'private=true' : 'private=false'),
+    uri: '/v1/data/publish/' + params.channel + '/' + params.resource + '?' + (params['private']? 'private=true' : 'private=false'),
     data: bodystr,
     method: 'POST',
     is_public: false
@@ -844,7 +846,7 @@ BBT.Connector.prototype.publishBulk = function(params, callback) {
   var self = this;
   var bodystr = JSON.stringify({records: params.records});
   options = {
-    uri: '/v1/data/publish/' + params.channel + '?' + (params.private? 'private=true' : 'private=false'),
+    uri: '/v1/data/publish/' + params.channel + '?' + (params['private']? 'private=true' : 'private=false'),
     data: bodystr,
     method: 'POST',
     is_public: false
