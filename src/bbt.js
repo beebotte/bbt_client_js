@@ -178,7 +178,7 @@ BBT.prototype.updateParams = function(params) {
   if(params.api_host) this.api_host = params.api_host;
   if(params.port) this.port = params.port;
   if(params.sport) this.sport = params.sport;
-  if(params.ssl) this.ssl = params.ssl;
+  if(params.ssl === false) this.ssl = params.ssl; //set to false
 
   if(params.cipher) this.cipher = params.cipher;
 }
