@@ -430,6 +430,7 @@ BBT.Channel.prototype.do_subscribe = function() {
             return self.onError('Bad authentication reply');
           }
           args.sig = data.auth;
+          if( data.userid ) args.userid = data.userid;
           if(connection.send('control', 'subscribe', args)) {
             self.subscribe();
             self.onSuccess('Successfully subscribed to ' + self.channel + '.' + self.resource);
@@ -446,6 +447,7 @@ BBT.Channel.prototype.do_subscribe = function() {
         .success(function( data ) {
           if(!data.auth) return self.onError('Bad authentication reply');
           args.sig = data.auth;
+          if( data.userid ) args.userid = data.userid;
           if(connection.send('control', 'subscribe', args)) {
             self.subscribe();
             self.onSuccess('Successfully subscribed to ' + self.channel + '.' + self.resource);
@@ -461,6 +463,7 @@ BBT.Channel.prototype.do_subscribe = function() {
         sig = connection.bbt.auth_endpoint(args.sid, args.channel, args.resource, args.ttl, args.read, args.write);
         if( !sig ) return self.onError('Unable to authenticate client');
         args.sig = sig.auth;
+        if( sig.userid ) args.userid = sig.userid;
         if(connection.send('control', 'subscribe', args)) {
           self.subscribe();
           self.onSuccess('Successfully subscribed to ' + self.channel + '.' + self.resource);
