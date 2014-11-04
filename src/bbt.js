@@ -1,6 +1,6 @@
 /*!
  * Beebotte client JavaScript library
- * Version 0.3.1
+ * Version 0.4.0
  * http://beebotte.com
  * Report issues to https://github.com/beebotte/bbt_node/issues
  * Contact email contact@beebotte.com
@@ -310,11 +310,6 @@ BBT.Connection.prototype.publish = function(args) {
 BBT.Connection.prototype.write = function(args) {
   var Channel = this.channels.getChannelWithPermission(args.channel, args.resource, false, true);
 
-  if(args.channel.indexOf('private-') === 0) {
-    //persistent messages have their own access levels (public or private). This overrides user indication
-    args.channel = args.channel.substring('private-'.length);
-  }
-
   if(Channel && Channel.hasWritePermission()) {
     if(this.send('stream', 'write', {channel: args.channel, resource: args.resource, data: args.data})) {
       return args.callback(null, {code: 0});
@@ -421,8 +416,8 @@ BBT.Channel.prototype.do_subscribe = function() {
 
   if(this.authNeeded()) {
     if( ! self.bbt.auth_endpoint ) return self.onError('Authentication error: Missing authentication endpoint!');
-    if(connection.connected && connection.connection && connection.connection.socket && connection.connection.socket.sessionid) {
-      args.sid = connection.connection.socket.sessionid;
+    if(connection.connected && connection.connection && connection.connection.io.engine.id && connection.connection.io.engine.id) {
+      args.sid = connection.connection.io.engine.id;
       if(connection.bbt.auth_method === 'get') {
         $.get( connection.bbt.auth_endpoint, args )
         .success(function( data ) {
@@ -922,4 +917,5 @@ BBT.Connector.prototype.auth = function( sid, channel, resource, ttl, read, writ
   var to_sign = sid + ':' + channel + '.' + resource + ':ttl=' + ttl + ':read=' + read + ':write=' + write;
   return {auth: this.sign(to_sign)};
 } 
+
 
