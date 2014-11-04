@@ -216,8 +216,6 @@ BBT.Connection.prototype.connect = function () {
   
   this.connection.on('connect', function () {
     self.connected = true;
-    //console.log(self.connection.socket.sessionid);
-    //self.get_auth();
     self.onConnection();
   });
 
@@ -243,21 +241,7 @@ BBT.Connection.prototype.connect = function () {
 }
 
 BBT.Connection.prototype.disconnect = function () {
-  if(this.connection) this.connection.socket.disconnect();
-}
-
-//for internal use only
-BBT.Connection.prototype.get_auth = function(channel, resource) {
-  var self = this;
-  if(self.connected && self.bbt.auth_endpoint && self.connection && self.connection.socket && self.connection.socket.sessionid) {
-    $.get( self.bbt.auth_endpoint, { sid: self.connection.socket.sessionid, channel: channel || '', resource: resource || '' } )
-    .success(function( data ) {
-      self.send_auth(data, {channel: channel, resource: resource});
-    })
-    .error(function(XMLHttpRequest, textStatus, errorThrown) { 
-      //console.log('Unable to authenticate client');
-    });
-  }
+  if(this.connection) this.connection.io.disconnect();
 }
 
 //for internal use only
@@ -564,9 +548,7 @@ BBT.prototype.setUsername = function(username) {
  */
 BBT.prototype.connect = function() {
   if(this.connection.connection) {
-    var query =  'key=' + this.key + '&username=' + (this.userinfo.username || '');
-    this.connection.connection.socket.options.query = query;
-    this.connection.connection.socket.reconnect();
+    this.connection.connection.io.reconnect();
   }else {
     this.connection.connect();
   }
