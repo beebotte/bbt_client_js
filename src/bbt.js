@@ -678,10 +678,11 @@ BBT.prototype.unsubscribe = function(args) {
  * Sends a REST read request to Beebotte. This is a convenient API call to access the history of public persistent resources. 
  *
  * @param {Object} args: {
+ *   {string, required} owner username of the channel owner. 
  *   {string, required} channel name of the channel. 
  *   {string, required} resource name of the resource.
- *   {function, optional} callback callback function to be called with the response data
- *   {function, optional} callback callback function to be called with the response data. args.callback element will override this parameter if it is present.
+ *   {function, optional} callback function to be called with the response data
+ * @param callback function to be called with the response data. args.callback element will override this parameter if it is present.
  * }
  */
 BBT.prototype.read = function(args, callback) {
@@ -698,10 +699,10 @@ BBT.prototype.read = function(args, callback) {
 
   if(!cbk) return BBT.error('Callback function not specified');
 
-  $.get( this.getApiUrl() + '/api/public/resource', {owner: args.owner, channel: args.channel, resource: args.resource, limit: limit} )
+    $.get(this.getApiUrl() + '/v1/public/data/read/' + args.owner +'/'+ args.channel +'/' + args.resource, { limit: limit })
     .success(function( data ) {
       if( cbk )
-        cbk( null, data );
+        cbk(null, data);
     })
     .error(function(XMLHttpRequest, textStatus, errorThrown) { 
       if( cbk )
