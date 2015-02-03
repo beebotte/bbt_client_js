@@ -634,7 +634,7 @@ BBT.prototype.subscribe = function(args, callback) {
   vargs.channel = args.channel;
   vargs.resource = args.resource || '*';
   vargs.ttl = args.ttl || 0;
-  vargs.read = args.read || true; //default true
+  vargs.read = (typeof( args.read ) === 'undefined' ) ? true : args.read === true; //default true
   vargs.write = args.write === true; // default false
   vargs.onError = args.onError || BBT.warn;
   vargs.onSuccess = args.onSuccess || function() {};
