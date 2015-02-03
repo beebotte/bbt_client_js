@@ -1,6 +1,6 @@
 /*!
  * Beebotte client JavaScript library
- * Version 0.4.0
+ * Version 0.4.1
  * http://beebotte.com
  * Report issues to https://github.com/beebotte/bbt_node/issues
  * Contact email contact@beebotte.com
