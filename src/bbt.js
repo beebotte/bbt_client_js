@@ -1,6 +1,6 @@
 /*!
  * Beebotte client JavaScript library
- * Version 0.4.1
+ * Version 0.5.1
  * http://beebotte.com
  * Report issues to https://github.com/beebotte/bbt_node/issues
  * Contact email contact@beebotte.com
@@ -94,7 +94,7 @@ BBT = function(key_id, options) {
 }
 
 /*** Constant Values ***/
-BBT.VERSION  = '0.3.0'; //Version of this client library
+BBT.VERSION  = '0.5.1'; //Version of this client library
 BBT.PROTO    = 1; //Version of Beebotte Protocol
 BBT.ws_host  = 'ws.beebotte.com';
 BBT.api_host = 'api.beebotte.com';
@@ -196,35 +196,30 @@ BBT.prototype.getApiUrl = function() {
 /** @constructor */
 BBT.Connection = function(bbt) {
   this.bbt = bbt;
-  this.connected = false;
   this.connection = null;
   this.channels = new BBT.Channels();
 
 }
 
 BBT.Connection.prototype.onConnection = function() {
-  this.connected = true;
   for(c in this.channels.channels) {
     this.channels.channels[c].do_subscribe();
   }
 }
 
 BBT.Connection.prototype.connect = function () {
+  if( this.connection && this.connection.connected ) return this;
   var self = this;
   var query =  'key=' + this.bbt.key + '&username=' + (self.bbt.userinfo.username || '');
-  this.connection = new io.connect(self.bbt.getWsUrl(), {query: query });
-  
+  this.connection = io(self.bbt.getWsUrl(), {query: query });
   this.connection.on('connect', function () {
-    self.connected = true;
     self.onConnection();
   });
 
   this.connection.on('disconnect', function () {
-    self.connected = false;
   });
 
   this.connection.on('message', function (msg) {
-    
     if(msg.channel && msg.resource) {
       var Channel = self.channels.getAny(msg.channel, msg.resource);
       if(Channel) {
@@ -237,11 +232,16 @@ BBT.Connection.prototype.connect = function () {
     }
   });
   
-  //this.connected = true;
+  this.connection.connect(); 
+  return this;
 }
 
 BBT.Connection.prototype.disconnect = function () {
-  if(this.connection) this.connection.io.disconnect();
+  if(this.connection.connected) {
+    this.connection.io.disconnect();
+    this.connection.removeAllListeners();
+  };
+  return this;
 }
 
 //for internal use only
@@ -273,7 +273,7 @@ BBT.Connection.prototype.unsubscribe = function(args) {
   var Channel = this.channels.get(args.channel, args.resource);
   if(Channel) {
     Channel.unsubscribe();
-    return this.send('control', 'unsubscribe', {channel: args.channel, resource: args.resource });
+    this.channels.remove(Channel);
   }
   return true;
 }
@@ -327,6 +327,11 @@ BBT.Channels.prototype.add = function(channel) {
   this.channels[channel.eid] = channel;
 }
 
+BBT.Channels.prototype.remove = function(channel) {
+  delete this.channels[channel.eid];
+  channel = null;
+}
+
 BBT.Channels.prototype.get = function(channel, resource) {
   if(this.channels[channel + '.' + resource]) return this.channels[channel + '.' + resource];
   return null;
@@ -372,7 +377,26 @@ BBT.Channel = function(args, fct, bbt) {
 }
 
 BBT.Channel.prototype.update = function(args) {
+  //set defaults
+  args.read = (typeof( args.read ) === 'undefined' ) ? true : args.read === true; //default true
+  args.write = args.write === true; // default false
 
+  if( args.read === this.read && args.write === this.write ) return; // skip same permissions
+  // Permissions changed: 
+  this.subscribed = false;
+  if( args.read ) {
+    this.setReadPermission();
+  } else {
+    this.resetReadPermission();
+  }
+
+  if( args.write ) {
+    this.setWritePermission();
+  } else {
+    this.resetWritePermission();
+  }
+
+  return this.do_subscribe(); 
 }
 
 //Authentication required for write access and for read access to private or presence resources
@@ -385,7 +409,7 @@ BBT.Channel.prototype.authNeeded = function() {
 
 BBT.Channel.prototype.do_subscribe = function() {
   var self = this;
-  if(!self.bbt.connection.connected) return;
+  if(!self.bbt.connection.connection.connected) return;
   var connection = this.bbt.connection;
 
   var args = {};
@@ -400,7 +424,7 @@ BBT.Channel.prototype.do_subscribe = function() {
 
   if(this.authNeeded()) {
     if( ! self.bbt.auth_endpoint ) return self.onError('Authentication error: Missing authentication endpoint!');
-    if(connection.connected && connection.connection && connection.connection.io.engine.id && connection.connection.io.engine.id) {
+    if(connection.connection && connection.connection.connected && connection.connection.io.engine.id) {
       args.sid = connection.connection.io.engine.id;
       if(connection.bbt.auth_method === 'get') {
         $.get( connection.bbt.auth_endpoint, args )
@@ -499,6 +523,8 @@ BBT.Channel.prototype.unsubscribe = function() {
   this.subscribed = false;
   this.resetReadPermission();
   this.resetWritePermission();
+  var connection = this.bbt.connection;
+  return connection.send('control', 'unsubscribe', {channel: this.channel, resource: this.resource });
 }
 
 //Returns true if the channel has write permission
@@ -547,11 +573,7 @@ BBT.prototype.setUsername = function(username) {
  * Connects this instance to the Beebotte platform if it is not connected. This method will be automatically called when creating a new instance of BBT.
  */
 BBT.prototype.connect = function() {
-  if(this.connection.connection) {
-    this.connection.connection.io.reconnect();
-  }else {
-    this.connection.connect();
-  }
+  this.connection.connect();
 }
 
 /**
