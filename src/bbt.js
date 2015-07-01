@@ -1,6 +1,6 @@
 /*!
  * Beebotte client JavaScript library
- * Version 0.5.1
+ * Version 0.5.2
  * http://beebotte.com
  * Report issues to https://github.com/beebotte/bbt_node/issues
  * Contact email contact@beebotte.com
@@ -778,11 +778,11 @@ BBT.Connector = function(options) {
     this.sendRequest = function(options, callback) {
       var self = this;
       options.method = options.method.toUpperCase();
-      date = new Date().toUTCString();
-      contentType = "application/json";
-      md5 = '';
+      var date = new Date().toUTCString();
+      var contentType = "application/json; charset=UTF-8";
+      var md5 = '';
       if( options.method === 'POST' || options.method === 'PUT' ) md5 = b64_md5(options.data);
-      beforeSend = function(xhr) {};
+      var beforeSend = function(xhr) {};
       if( options.is_public !== true ) {
         beforeSend = function(xhr) {
           if( md5 ) {xhr.setRequestHeader('Content-MD5', md5);}
