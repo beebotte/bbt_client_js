@@ -170,7 +170,7 @@ BBT.prototype.initDefaults = function() {
 
 BBT.prototype.updateParams = function(params) {
   if(params.auth_endpoint) this.auth_endpoint = params.auth_endpoint;
-  if(params.auth_method) this.auth_method = params.auth_method;
+  if(params.auth_method) this.auth_method = params.auth_method.toLowerCase();
   if(params.userinfo) this.userinfo = params.userinfo;
   if(params.username) this.userinfo.username = params.username;
   if(params.host) this.host = params.host;
