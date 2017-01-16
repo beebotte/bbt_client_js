@@ -45,6 +45,6 @@ For documentation, check the links under:
 Beebotte Javascript client library uses [Socket.io 1.0](http://socket.io/) and jQuery. You need to include them as well.
 
 ## License
-Copyright 2013 - 2014 Beebotte.
+Copyright 2013 - 2017 Beebotte.
 
 [The MIT License](http://opensource.org/licenses/MIT)
