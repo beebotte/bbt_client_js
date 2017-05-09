@@ -5,7 +5,7 @@
  * Report issues to https://github.com/beebotte/bbt_node/issues
  * Contact email contact@beebotte.com
  *
- * Copyright 2014, Beebotte
+ * Copyright 2017, Beebotte Corporation
  * MIT licence
  */
 
