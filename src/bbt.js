@@ -1,6 +1,6 @@
 /*!
  * Beebotte client JavaScript library
- * Version 0.5.2
+ * Version 0.6.0
  * http://beebotte.com
  * Report issues to https://github.com/beebotte/bbt_node/issues
  * Contact email contact@beebotte.com
@@ -60,14 +60,14 @@ function md5_hh(c,g,a,b,d,e,f){return md5_cmn(g^a^b,c,g,d,e,f)}function md5_ii(c
 
 /*********** DEPENDENCIES OVER ***************/
 
-/** @constructor 
+/** @constructor
  * Class: BBT
  * An object container for all Beebotte library functions.
- * 
+ *
  * @param key_id Access key associated with your Beebotte account
  * @param options optional parameters for initializing beebotte
  *   {
- *     auth_endpoint: authentication endpoint 
+ *     auth_endpoint: authentication endpoint
  *     auth_method: HTTP method (GET or POST) to be used for authentication purposes. Defaults to GET.
  *     server: URL to beebotte. default beebotte.com
  *     ssl: boolean - indicates whether ssl should be used. default false.
@@ -85,7 +85,7 @@ BBT = function(key_id, options) {
 
   var self = this;
 
-  this.instanceID = Math.floor(Math.random() * 1000000000); 
+  this.instanceID = Math.floor(Math.random() * 1000000000);
   BBT.instances.push(this);
 
   this.connection = new BBT.Connection(this);
@@ -94,13 +94,15 @@ BBT = function(key_id, options) {
 }
 
 /*** Constant Values ***/
-BBT.VERSION  = '0.5.1'; //Version of this client library
+BBT.VERSION  = '0.6.0'; //Version of this client library
 BBT.PROTO    = 1; //Version of Beebotte Protocol
 BBT.ws_host  = 'ws.beebotte.com';
 BBT.api_host = 'api.beebotte.com';
 BBT.host     = 'beebotte.com';
 BBT.port     = 80;  //Port for clear text connections
 BBT.sport    = 443; //Port for secure (TLS) connections
+
+BBT.debug = false
 
 BBT.types = {
     //Basic types
@@ -231,8 +233,8 @@ BBT.Connection.prototype.connect = function () {
       //console.log('Warning! non conform message: ' + JSON.stringify(msg));
     }
   });
-  
-  this.connection.connect(); 
+
+  this.connection.connect();
   return this;
 }
 
@@ -304,7 +306,7 @@ BBT.Connection.prototype.write = function(args) {
   return args.callback({code: 11, message: 'Permission error: cant\'t write on the given resource!'});
 }
 
-//For internal use only    
+//For internal use only
 BBT.Connection.prototype.send = function(cname, evt, data) {
   if(this.connection) {
     this.connection.json.send({version: BBT.PROTO, channel: cname, event: evt, data: data});
@@ -318,11 +320,11 @@ BBT.Connection.prototype.send = function(cname, evt, data) {
 BBT.Channels = function() {
   this.channels = [];
 }
-  
+
 BBT.Channels.prototype.all = function() {
   return this.channels;
 }
-  
+
 BBT.Channels.prototype.add = function(channel) {
   this.channels[channel.eid] = channel;
 }
@@ -378,11 +380,11 @@ BBT.Channel = function(args, fct, bbt) {
 
 BBT.Channel.prototype.update = function(args) {
   //set defaults
-  args.read = (typeof( args.read ) === 'undefined' ) ? true : args.read === true; //default true
+  args.read = (typeof args.read === 'undefined' ) ? true : args.read === true; //default true
   args.write = args.write === true; // default false
 
   if( args.read === this.read && args.write === this.write ) return; // skip same permissions
-  // Permissions changed: 
+  // Permissions changed:
   this.subscribed = false;
   if( args.read ) {
     this.setReadPermission();
@@ -396,7 +398,7 @@ BBT.Channel.prototype.update = function(args) {
     this.resetWritePermission();
   }
 
-  return this.do_subscribe(); 
+  return this.do_subscribe();
 }
 
 //Authentication required for write access and for read access to private or presence resources
@@ -415,8 +417,8 @@ BBT.Channel.prototype.do_subscribe = function() {
   var args = {};
   args.channel = self.channel;
   args.resource = self.resource || '*';
-  args.ttl = args.ttl || 0;
-  args.read = self.read; 
+  args.ttl = typeof args.ttl === 'number' ? args.ttl : 0
+  args.read = self.read;
   args.write = self.write;
   if(typeof self.bbt.userinfo !== 'undefined') {
     args.userinfo = self.bbt.userinfo;
@@ -515,7 +517,7 @@ BBT.Channel.prototype.resetWritePermission = function(){
 BBT.Channel.prototype.subscribe = function(){
   this.subscribed = true;
   if(this.read === true) this.setReadPermission();
-  if(this.write === true) this.setWritePermission(); 
+  if(this.write === true) this.setWritePermission();
 }
 
 //Unsubscribes from the channel! this revoques any permission granted to the channel
@@ -559,7 +561,11 @@ BBT.warn = function(message) {
 };
 
 BBT.error = function(err) {
-  if(BBT.debug) throw new Error(msg);
+  if (BBT.debug) {
+    throw err;
+  } else {
+    BBT.warn(err)
+  }
 }
 
 /**
@@ -585,7 +591,7 @@ BBT.prototype.disconnect = function() {
 
 /**
  * Sends a transient message to Beebotte. This method require prior 'write' permission on the specified resource (see BBT.grant method).
- * 
+ *
  * @param {Object} args: {
  *   {string, required} channel name of the channel. It can be prefixed with 'private-' to indicate a private resource.
  *   {string, required} resource name of the resource.
@@ -597,40 +603,40 @@ BBT.prototype.publish = function(args, data) {
   var vargs = {};
   vargs.channel = args.channel;
   vargs.resource = args.resource;
-  vargs.data = args.data || data;
+  vargs.data = args.data != null ? args.data : data
   vargs.callback = args.callback || function() {};
 
   if(!vargs.channel) return BBT.error('channel not specified');
   if(!vargs.resource) return BBT.error('resource not specified');
   if(!(typeof vargs.channel === 'string')) return BBT.error('Invalid format: channel must be a string');
   if(!(typeof vargs.resource === 'string')) return BBT.error('Invalid format: resource must be a string');
-  if(!vargs.data) return BBT.error('Data message not specified');
+  if(vargs.data === null || vargs.data === undefined) return BBT.error('Data message not specified');
 
   return this.connection.publish(vargs);
 }
 
 /**
  * Sends a presistent message to Beebotte. This method require prior 'write' permission on the specified resource (see BBT.grant method).
- * A resource with the specified parameters must exist for this method to succeed. In addition, the message will inherit the access level of the channel. 
- * As the access level is specified by the existing channel parameters, it is not necessary to add the 'private-' prefix. 
+ * A resource with the specified parameters must exist for this method to succeed. In addition, the message will inherit the access level of the channel.
+ * As the access level is specified by the existing channel parameters, it is not necessary to add the 'private-' prefix.
  *
  * @param {Object} args: {
  *   {string, required} channel name of the channel. It can be prefixed with 'private-' to indicate a private resource.
  *   {string, required} resource name of the resource.
  *   {Object, optional} data data message to write to Bebotte.
  * }
- * @param {Object optional} data data message to write to Beebotte. If args.data is present, it will override this parameter.  
+ * @param {Object optional} data data message to write to Beebotte. If args.data is present, it will override this parameter.
  */
 BBT.prototype.write = function(args, data) {
   var vargs = {};
   vargs.channel = args.channel;
   vargs.resource = args.resource;
-  vargs.data = args.data || data;
+  vargs.data = args.data != null ? args.data : data;
   vargs.callback = args.callback || function() {};
 
   if(!vargs.channel) return BBT.error('channel not specified');
   if(!vargs.resource) return BBT.error('resource not specified');
-  if(!vargs.data) return BBT.error('Data message not specified');
+  if(vargs.data === null || vargs.data === undefined) return BBT.error('Data message not specified');
   if(!(typeof vargs.channel === 'string')) return BBT.error('Invalid format: channel must be a string');
   if(!(typeof vargs.resource === 'string')) return BBT.error('Invalid format: resource must be a string');
 
@@ -649,14 +655,14 @@ BBT.prototype.write = function(args, data) {
  * }
  * @param callback function to be called when a message is received.
  * @return true on success false on failure
- */  
+ */
 BBT.prototype.subscribe = function(args, callback) {
   var vargs = {};
   var cbk = callback || args.callback;
   vargs.channel = args.channel;
   vargs.resource = args.resource || '*';
-  vargs.ttl = args.ttl || 0;
-  vargs.read = (typeof( args.read ) === 'undefined' ) ? true : args.read === true; //default true
+  vargs.ttl = typeof args.ttl === 'number' ? args.ttl : 0;
+  vargs.read = (typeof args.read === 'undefined' ) ? true : args.read === true; //default true
   vargs.write = args.write === true; // default false
   vargs.onError = args.onError || BBT.warn;
   vargs.onSuccess = args.onSuccess || function() {};
@@ -674,8 +680,8 @@ BBT.prototype.subscribe = function(args, callback) {
 }
 
 /**
- * Stops listenning to messages from the specified resource. 
- * 
+ * Stops listenning to messages from the specified resource.
+ *
  * @param {Object} args: {
  *   {string} channel name of the channel. It can be prefixed with 'private-' to indicate a private resource, or it can be prefixed with 'presence-' to indicate presence events.
  *   {string} resource name of the resource.
@@ -696,12 +702,12 @@ BBT.prototype.unsubscribe = function(args) {
   return this.connection.unsubscribe(vargs);
 }
 
-/** 
- * Sends a REST read request to Beebotte. This is a convenient API call to access the history of public persistent resources. 
+/**
+ * Sends a REST read request to Beebotte. This is a convenient API call to access the history of public persistent resources.
  *
  * @param {Object} args: {
- *   {string, required} owner username of the channel owner. 
- *   {string, required} channel name of the channel. 
+ *   {string, required} owner username of the channel owner.
+ *   {string, required} channel name of the channel.
  *   {string, required} resource name of the resource.
  *   {function, optional} callback function to be called with the response data
  * @param callback function to be called with the response data. args.callback element will override this parameter if it is present.
@@ -726,7 +732,7 @@ BBT.prototype.read = function(args, callback) {
       if( cbk )
         cbk(null, data);
     })
-    .error(function(XMLHttpRequest, textStatus, errorThrown) { 
+    .error(function(XMLHttpRequest, textStatus, errorThrown) {
       if( cbk )
         cbk ( {code: 11, message: 'Error'}, null );
     });
@@ -746,11 +752,11 @@ BBT.Connector = function(options) {
     }else {
         throw new Error('(BBT.Connector) Parameter Error: You must provide your API access key and secret key!');
     }
-    
+
     this.protocol = options.protocol || 'https'; //Defaults to HTTPs
     if(this.protocol.toLowerCase() !== 'http' && this.protocol.toLowerCase() !== 'https') throw new Error('Unsupported protocol ' + this.protocol);
     this.hostname = options.hostname || 'api.beebotte.com';
-    if(this.protocol.toLowerCase() === 'http') this.port = 80; else this.port = 443; 
+    if(this.protocol.toLowerCase() === 'http') this.port = 80; else this.port = 443;
     if(options.port) this.port = options.port;
 
     this.sign = function(toSign) {
@@ -769,7 +775,7 @@ BBT.Connector = function(options) {
 
       return this.sign(stringToSign);
     }
-    
+
     this.getUriToSign = function (method, uri, data) {
       if( method === 'POST' || method === 'PUT' ) return uri;
       return (uri + (data? ('?' + jQuery.param( data )) : ''));
@@ -826,7 +832,7 @@ BBT.Connector.prototype.readPublicResource = function(params, callback) {
     method: 'GET',
     is_public: true
   }
-    
+
   return this.sendRequest(options, callback);
 }
 
@@ -847,7 +853,7 @@ BBT.Connector.prototype.readResource = function(params, callback) {
     method: 'GET',
     is_public: false
   }
-    
+
   return this.sendRequest(options, callback);
 }
 
@@ -863,7 +869,7 @@ BBT.Connector.prototype.writeResource = function(params, callback) {
     method: 'POST',
     is_public: false
   }
-    
+
   return this.sendRequest(options, callback);
 }
 
@@ -877,7 +883,7 @@ BBT.Connector.prototype.writeBulk = function(params, callback) {
     method: 'POST',
     is_public: false
   }
-    
+
   return this.sendRequest(options, callback);
 }
 
@@ -893,7 +899,7 @@ BBT.Connector.prototype.publish = function(params, callback) {
     method: 'POST',
     is_public: false
   }
-    
+
   return this.sendRequest(options, callback);
 }
 
@@ -907,20 +913,18 @@ BBT.Connector.prototype.publishBulk = function(params, callback) {
     method: 'POST',
     is_public: false
   }
-    
+
   return this.sendRequest(options, callback);
 }
 
 BBT.Connector.prototype.auth = function( sid, channel, resource, ttl, read, write ) {
-  resource = resource || '*',
-  ttl = ttl || 0,
-  read = read || false,
-  write = write || false,
+  resource = resource || '*'
+  ttl = typeof ttl === 'number' ? ttl : 0
+  read = typeof read === 'undefined' ? true : read === true; //default true
+  write = write === true; //default false
   sid = sid;
   if( !sid || !channel ) return null;
 
   var to_sign = sid + ':' + channel + '.' + resource + ':ttl=' + ttl + ':read=' + read + ':write=' + write;
   return {auth: this.sign(to_sign)};
-} 
-
-
+}
